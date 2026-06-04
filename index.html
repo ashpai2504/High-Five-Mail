@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>High Five Mailer · Hunter Industries</title>
+<!-- SheetJS (xlsx) for reading/writing Excel, loaded from CDN -->
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --brand: #005EB8;        /* Hunter blue */
+    --brand-dark: #00427F;
+    --brand-darker: #00305c;
+    --accent: #f4f6f8;
+    --bg: #f1f4f8;
+    --card: #ffffff;
+    --border: #d7dee6;
+    --text: #1c2733;
+    --muted: #677586;
+    --danger: #c0392b;
+    --ok: #1f7a3d;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.5;
+  }
+  header {
+    background: linear-gradient(135deg, var(--brand) 0%, var(--brand-darker) 100%);
+    color: #fff; padding: 22px 28px; display: flex; align-items: center; gap: 18px;
+  }
+  .logo-chip {
+    background: #fff; border-radius: 8px; padding: 10px 14px; display: flex; align-items: center;
+    box-shadow: 0 1px 4px rgba(0,0,0,.15); flex: none;
+  }
+  .logo-chip img { height: 26px; display: block; }
+  header .titles h1 { margin: 0; font-size: 21px; font-weight: 700; }
+  header .titles p { margin: 3px 0 0; opacity: .92; font-size: 13.5px; }
+  main { max-width: 920px; margin: 24px auto; padding: 0 20px 60px; }
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    padding: 22px 24px; margin-bottom: 20px; box-shadow: 0 1px 2px rgba(0,0,0,.04);
+  }
+  .card h2 { margin: 0 0 4px; font-size: 16px; color: var(--brand-dark); }
+  .card .hint { color: var(--muted); font-size: 13px; margin: 0 0 14px; }
+  label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 6px; }
+  input[type="text"], textarea {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--border);
+    border-radius: 7px; font-size: 14px; font-family: inherit; background: #fff;
+  }
+  input:focus, textarea:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(0,94,184,.12); }
+  textarea { resize: vertical; min-height: 120px; }
+  .field { margin-bottom: 16px; }
+  .filebox {
+    border: 2px dashed var(--border); border-radius: 8px; padding: 24px;
+    text-align: center; color: var(--muted); cursor: pointer; transition: .15s;
+  }
+  .filebox.drag { border-color: var(--brand); background: #eef5fc; color: var(--brand-dark); }
+  .filebox strong { color: var(--text); }
+  button {
+    background: var(--brand); color: #fff; border: 0; border-radius: 8px;
+    padding: 12px 22px; font-size: 15px; font-weight: 600; cursor: pointer;
+  }
+  button:hover { background: var(--brand-dark); }
+  button:disabled { background: #9fb6cd; cursor: not-allowed; }
+  button.secondary { background: #fff; color: var(--brand-dark); border: 1px solid var(--brand); }
+  button.secondary:hover { background: #eef5fc; }
+  .actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .progress-wrap { margin-top: 16px; display: none; }
+  .progress-wrap.show { display: block; }
+  .bar { height: 10px; background: #e2e8ef; border-radius: 6px; overflow: hidden; }
+  .bar > i { display: block; height: 100%; width: 0; background: var(--brand); transition: width .2s; }
+  .status { font-size: 13px; color: var(--muted); margin-top: 8px; }
+  .status.err { color: var(--danger); font-weight: 600; }
+  .status.ok { color: var(--ok); font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 13px; }
+  th, td { border: 1px solid var(--border); padding: 7px 9px; text-align: left; vertical-align: top; }
+  th { background: #eaf1f8; position: sticky; top: 0; color: var(--brand-dark); }
+  .preview-wrap { max-height: 360px; overflow: auto; margin-top: 8px; }
+  td.body { max-width: 360px; white-space: pre-wrap; }
+  a.maillink { color: var(--brand-dark); font-weight: 600; }
+  .pill { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 10px; background: #eaf1f8; color: var(--muted); }
+  .pill.ok { background: #e3f3e9; color: var(--ok); }
+  .pill.warn { background: #fdecea; color: var(--danger); }
+  .step-num { display:inline-flex; width:22px; height:22px; border-radius:50%; background:var(--brand); color:#fff;
+    font-size:13px; align-items:center; justify-content:center; margin-right:8px; vertical-align:middle; }
+  details summary { cursor: pointer; font-weight: 600; font-size: 13px; color: var(--brand-dark); }
+  code { background: #eaf1f8; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo-chip">
+    <img src="hunter-logo.svg" alt="Hunter Industries" />
+  </div>
+  <div class="titles">
+    <h1>High Five Mailer</h1>
+    <p>Turn a High Five spreadsheet into one-click Outlook emails — written for you by AI.</p>
+  </div>
+</header>
+
+<main>
+  <!-- STEP 1: Spreadsheet -->
+  <div class="card">
+    <h2><span class="step-num">1</span>High Five spreadsheet</h2>
+    <p class="hint">Needs columns: <code>Recipient</code>, <code>Recipient Manager</code>, <code>Submitted</code>, <code>Comments</code>. Accepts .xlsx, .xls or .csv.</p>
+    <div class="filebox" id="filebox">
+      <strong>Click to choose a file</strong> or drag &amp; drop here
+      <div id="fileInfo" class="status"></div>
+    </div>
+    <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" style="display:none" />
+  </div>
+
+  <!-- STEP 2: Instructions -->
+  <div class="card">
+    <h2><span class="step-num">2</span>Email instructions</h2>
+    <p class="hint">Tells the AI how every email should sound. The recipient name + their High Five comments are added automatically per row.</p>
+    <div class="field">
+      <label for="subject">Subject line <span class="pill">use {recipient} for the name</span></label>
+      <input type="text" id="subject" value="🙌 A High Five for you, {recipient}!" />
+    </div>
+    <div class="field">
+      <label for="sysPrompt">System prompt</label>
+      <textarea id="sysPrompt"></textarea>
+    </div>
+  </div>
+
+  <!-- ACTIONS -->
+  <div class="card">
+    <div class="actions">
+      <button id="generate">Generate emails &amp; build Excel</button>
+      <button id="download" class="secondary" disabled>⬇ Download Excel</button>
+      <button id="testConn" class="secondary">Test connection</button>
+      <span class="status" id="summary"></span>
+    </div>
+    <div class="progress-wrap" id="progressWrap">
+      <div class="bar"><i id="barFill"></i></div>
+      <div class="status" id="progressText"></div>
+    </div>
+  </div>
+
+  <!-- PREVIEW -->
+  <div class="card" id="previewCard" style="display:none">
+    <h2>Preview</h2>
+    <p class="hint">First few generated emails. The downloaded Excel has a clickable <strong>Email Link</strong> column that opens Outlook with To, CC, subject &amp; body filled in.</p>
+    <div class="preview-wrap">
+      <table id="previewTable"></table>
+    </div>
+  </div>
+
+  <details class="card">
+    <summary>How it works &amp; notes</summary>
+    <div style="margin-top:10px;font-size:13px;color:var(--muted)">
+      <p><strong>To / CC:</strong> The link sets <em>To = Recipient</em> and <em>CC = Recipient Manager + Submitted</em>, using their display names. When you click the link, Outlook opens and resolves those names against your company address book (GAL). If a name doesn't auto-resolve, Outlook underlines it so you can pick the right person.</p>
+      <p><strong>Length limit:</strong> Excel hyperlinks and Windows <code>mailto:</code> are capped near ~2,000 characters. The AI is told to keep emails short so nothing is cut off. Rows that still exceed the limit are flagged <span class="pill warn">trimmed</span>.</p>
+      <p><strong>Privacy &amp; key:</strong> The Gemini API key lives only on the server (Vercel env var) — it is never shown in the browser. Only the recipient name + comments + your prompt are sent to Google's Gemini API to write each message.</p>
+    </div>
+  </details>
+</main>
+
+<script>
+const DEFAULT_SYSTEM_PROMPT =
+`You are an assistant helping a Hunter Industries representative send "High Five" recognition emails to employees who were nominated by their peers.
+
+Write a warm, sincere, and professional email body congratulating the recipient on the recognition described in their High Five comments. Guidelines:
+- Address the recipient by first name.
+- Reference the specific accomplishment from the comments (paraphrase naturally; do not copy it word-for-word).
+- Keep it upbeat, genuine, and concise: about 60-90 words, 1-2 short paragraphs.
+- End with a brief congratulatory sign-off (e.g. "Congratulations and thank you!").
+- Do NOT invent facts that aren't in the comments.
+- Do NOT include a subject line, "To:", placeholders like [Name], or a signature block — output only the email body text.`;
+
+// Roughly the max length Excel/Outlook will accept for a hyperlink target.
+const MAX_LINK_LEN = 2000;
+const CONCURRENCY = 4;
+
+const $ = id => document.getElementById(id);
+const sysEl = $('sysPrompt'), subjEl = $('subject');
+const fileInput = $('fileInput'), filebox = $('filebox'), fileInfo = $('fileInfo');
+const genBtn = $('generate'), dlBtn = $('download');
+let parsedRows = null, headers = null, colIdx = null, outputWorkbook = null;
+
+// ---------- init ----------
+sysEl.value = localStorage.getItem('hf_sysprompt') || DEFAULT_SYSTEM_PROMPT;
+if (localStorage.getItem('hf_subject')) subjEl.value = localStorage.getItem('hf_subject');
+subjEl.addEventListener('change', () => localStorage.setItem('hf_subject', subjEl.value));
+sysEl.addEventListener('change', () => localStorage.setItem('hf_sysprompt', sysEl.value));
+
+// ---------- file handling ----------
+filebox.addEventListener('click', () => fileInput.click());
+filebox.addEventListener('dragover', e => { e.preventDefault(); filebox.classList.add('drag'); });
+filebox.addEventListener('dragleave', () => filebox.classList.remove('drag'));
+filebox.addEventListener('drop', e => {
+  e.preventDefault(); filebox.classList.remove('drag');
+  if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', () => { if (fileInput.files.length) handleFile(fileInput.files[0]); });
+
+function findCol(hdrs, name) {
+  const target = name.toLowerCase().replace(/\s+/g, '');
+  return hdrs.findIndex(h => String(h).toLowerCase().replace(/\s+/g, '') === target);
+}
+
+function handleFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const aoa = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', blankrows: false });
+      if (!aoa.length) throw new Error('Sheet appears to be empty.');
+      headers = aoa[0].map(h => String(h).trim());
+      const rows = aoa.slice(1).filter(r => r.some(c => String(c).trim() !== ''));
+      colIdx = {
+        recipient: findCol(headers, 'Recipient'),
+        manager: findCol(headers, 'Recipient Manager'),
+        submitted: findCol(headers, 'Submitted'),
+        comments: findCol(headers, 'Comments'),
+      };
+      const missing = Object.entries(colIdx).filter(([, v]) => v === -1).map(([k]) => k);
+      if (missing.length) throw new Error('Missing column(s): ' + missing.join(', ') + '. Found: ' + headers.join(', '));
+      parsedRows = rows;
+      fileInfo.innerHTML = `<span class="pill ok">✓ ${file.name}</span> &nbsp; ${rows.length} recognition row(s) loaded`;
+    } catch (err) {
+      parsedRows = null;
+      fileInfo.innerHTML = `<span class="pill warn">✗ ${err.message}</span>`;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ---------- email generation (via serverless function) ----------
+async function generateBody(recipient, comments) {
+  const res = await fetch('/api/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ systemPrompt: sysEl.value, recipient, comments }),
+  });
+  let data = {};
+  try { data = await res.json(); } catch (_) {}
+  if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
+  return (data.text || '').trim();
+}
+
+$('testConn').addEventListener('click', async () => {
+  setSummary('Testing connection…');
+  try {
+    await generateBody('Test', 'You did a great job testing this tool.');
+    setSummary('✓ Connection works — the server key is set.', false, true);
+  } catch (err) {
+    setSummary('✗ ' + err.message, true);
+  }
+});
+
+// ---------- mailto building ----------
+function buildMailto(recipient, manager, submitted, subject, body) {
+  const ccNames = [manager, submitted].map(x => String(x || '').trim()).filter(Boolean);
+  const ccUnique = [...new Set(ccNames.map(n => n.toLowerCase()))].map(l => ccNames.find(n => n.toLowerCase() === l));
+  const cc = ccUnique.map(encodeURIComponent).join(',');
+  const subj = encodeURIComponent(subject.replace(/\{recipient\}/gi, recipient));
+  const base = r => `mailto:${encodeURIComponent(recipient)}?${cc ? 'cc=' + cc + '&' : ''}subject=${subj}&body=${encodeURIComponent(r)}`;
+  let url = base(body), trimmed = false;
+  if (url.length > MAX_LINK_LEN) {
+    let b = body;
+    while (b.length > 40 && base(b).length > MAX_LINK_LEN) b = b.slice(0, -40);
+    b = b.trim() + ' …';
+    url = base(b);
+    trimmed = true;
+  }
+  return { url, trimmed };
+}
+
+// ---------- generation pipeline ----------
+genBtn.addEventListener('click', async () => {
+  if (!parsedRows) return setSummary('Load a spreadsheet first.', true);
+  localStorage.setItem('hf_sysprompt', sysEl.value);
+  localStorage.setItem('hf_subject', subjEl.value);
+
+  genBtn.disabled = true; dlBtn.disabled = true;
+  $('progressWrap').classList.add('show');
+  setSummary('');
+  const total = parsedRows.length;
+  const results = new Array(total);
+  let done = 0, errors = 0, trimmedCount = 0;
+  updateProgress(0, total);
+
+  let next = 0;
+  async function worker() {
+    while (next < total) {
+      const i = next++;
+      const row = parsedRows[i];
+      const recipient = String(row[colIdx.recipient] || '').trim();
+      const manager = row[colIdx.manager];
+      const submitted = row[colIdx.submitted];
+      const comments = String(row[colIdx.comments] || '').trim();
+      try {
+        let body = (!recipient || !comments) ? '' : await generateBody(recipient.split(' ')[0], comments);
+        const { url, trimmed } = buildMailto(recipient, manager, submitted, subjEl.value, body || '(no comments provided)');
+        if (trimmed) trimmedCount++;
+        results[i] = { body, url, trimmed, error: null };
+      } catch (err) {
+        errors++;
+        results[i] = { body: '', url: '', trimmed: false, error: err.message };
+      }
+      done++;
+      updateProgress(done, total);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, total) }, worker));
+
+  buildWorkbook(results);
+  renderPreview(results);
+  dlBtn.disabled = false; genBtn.disabled = false;
+  setSummary(`Done: ${total - errors}/${total} emails generated` +
+    (trimmedCount ? `, ${trimmedCount} trimmed to fit the link limit` : '') +
+    (errors ? `, ${errors} error(s).` : '.'), errors > 0);
+});
+
+function buildWorkbook(results) {
+  const outHeaders = [...headers, 'Email Link'];
+  const aoa = [outHeaders];
+  parsedRows.forEach((row, i) => {
+    const r = results[i];
+    const display = r.error ? ('ERROR: ' + r.error) : (r.url ? '✉ Open in Outlook' : '(skipped)');
+    aoa.push([...row, display]);
+  });
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  const linkCol = outHeaders.length - 1;
+  parsedRows.forEach((row, i) => {
+    const r = results[i];
+    if (r.url) {
+      const ref = XLSX.utils.encode_cell({ r: i + 1, c: linkCol });
+      if (!ws[ref]) ws[ref] = { t: 's', v: '✉ Open in Outlook' };
+      ws[ref].l = { Target: r.url, Tooltip: 'Open this email in Outlook' };
+    }
+  });
+  ws['!cols'] = outHeaders.map((h, c) => ({ wch: c === colIdx.comments ? 50 : (c === linkCol ? 20 : 18) }));
+  outputWorkbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(outputWorkbook, ws, 'High Fives');
+}
+
+dlBtn.addEventListener('click', () => {
+  if (!outputWorkbook) return;
+  const stamp = new Date().toISOString().slice(0, 10);
+  XLSX.writeFile(outputWorkbook, `High Fives - Email Links ${stamp}.xlsx`);
+});
+
+// ---------- UI helpers ----------
+function updateProgress(done, total) {
+  const pct = total ? Math.round((done / total) * 100) : 0;
+  $('barFill').style.width = pct + '%';
+  $('progressText').textContent = `Generating emails… ${done} / ${total} (${pct}%)`;
+}
+function setSummary(msg, isErr, isOk) {
+  const s = $('summary'); s.textContent = msg;
+  s.className = 'status' + (isErr ? ' err' : (isOk ? ' ok' : ''));
+}
+function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+
+function renderPreview(results) {
+  $('previewCard').style.display = 'block';
+  const max = Math.min(8, parsedRows.length);
+  let html = '<tr><th>Recipient</th><th>CC (Manager · Submitted)</th><th>Generated email</th><th>Link</th></tr>';
+  for (let i = 0; i < max; i++) {
+    const row = parsedRows[i], r = results[i];
+    const cc = [row[colIdx.manager], row[colIdx.submitted]].filter(Boolean).join(' · ');
+    const linkCell = r.error
+      ? `<span class="pill warn">${esc(r.error)}</span>`
+      : (r.url ? `<a class="maillink" href="${r.url}">✉ Open</a>${r.trimmed ? ' <span class="pill warn">trimmed</span>' : ''}` : '<span class="pill">skipped</span>');
+    html += `<tr><td>${esc(row[colIdx.recipient])}</td><td>${esc(cc)}</td>` +
+            `<td class="body">${esc(r.body || '')}</td><td>${linkCell}</td></tr>`;
+  }
+  $('previewTable').innerHTML = html;
+}
+</script>
+</body>
+</html>

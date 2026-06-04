@@ -1,0 +1,9 @@
+{
+  "name": "high-five-mail",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Turn a High Five recognition spreadsheet into one-click Outlook emails, with bodies written by Google Gemini.",
+  "engines": {
+    "node": ">=18"
+  }
+}

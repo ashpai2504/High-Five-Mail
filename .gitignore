@@ -1,0 +1,16 @@
+# Secrets — never commit the real API key
+.env
+.env*.local
+
+# Vercel
+.vercel/
+
+# Node
+node_modules/
+*.log
+
+# Sample / internal data (contains employee names — keep out of the repo)
+Data/
+
+# Old single-file prototype
+HighFiveMailer.html
