@@ -47,6 +47,46 @@ Opening `index.html` directly with `file://` will **not** work because it needs 
 ## Notes & limits
 
 - **Name resolution:** Links use display names (not email addresses); Outlook resolves them
+
+Have a great day,
+-The Landscape Division Leadership Team
+
+1 760-744-5240 Main
+
+              
+1940 Diamond Street
+San Marcos, CA 92078
+USA
+www.hunterindustries.com
+ 
+
+
+
+Jessica Hodges, PACE
+
+Executive Assistant
+
+Landscape Division
+
+ 
+
+1 760-304-7229 Direct
+
+1-270-839-0338 Cell
+
+Jessica.hodges@hunter.global
+
+ 
+
+ 
+
+ 
+
+1940 Diamond Street
+
+San Marcos, CA 92078 USA
+
+hunterindustries.com
   against your company address book (GAL) on click. Ambiguous names are underlined for you to pick.
 - **Length limit:** Excel hyperlinks and Windows `mailto:` cap near ~2,000 characters. The AI is
   told to keep emails short; any row that still exceeds the limit has its body trimmed and is flagged.
