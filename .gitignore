@@ -14,3 +14,7 @@ Data/
 
 # Old single-file prototype
 HighFiveMailer.html
+
+# Local signature working files
+signature
+SignatureImage.png
