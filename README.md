@@ -36,6 +36,19 @@ The spreadsheet needs these columns (case/space-insensitive):
    - `GEMINI_MODEL` = `gemini-2.5-flash-lite` *(optional; this is the default)*
 4. **Deploy**. Open the URL, upload a sheet, and click **Test connection** to confirm the key works.
 
+## Cross-device settings sync (optional)
+
+The **Subject**, **System prompt**, and **Signature** are saved automatically. By default they
+save only in the current browser. To make edits persist server-side and appear on **any device
+after a refresh**, add a Redis store:
+
+1. Vercel → **Storage** → **Create Database** → **Upstash for Redis** (or "KV") → connect it to this project.
+   Vercel auto-injects the connection env vars (`KV_REST_API_URL` / `KV_REST_API_TOKEN`,
+   or `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` — both naming styles are supported).
+2. Redeploy. The Step 2 header will now show **“✓ Synced across devices.”**
+
+Without a store, the tool still works — it just shows *"Saved on this device only."*
+
 ## Local development
 
 ```bash

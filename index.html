@@ -84,6 +84,9 @@
   .pill.warn { background: #fdecea; color: var(--danger); }
   .step-num { display:inline-flex; width:22px; height:22px; border-radius:50%; background:var(--brand); color:#fff;
     font-size:13px; align-items:center; justify-content:center; margin-right:8px; vertical-align:middle; }
+  .sync { font-size: 12px; font-weight: 500; color: var(--muted); margin-left: 8px; }
+  .sync.ok { color: var(--ok); }
+  .sync.err { color: var(--danger); }
   details summary { cursor: pointer; font-weight: 600; font-size: 13px; color: var(--brand-dark); }
   code { background: #eaf1f8; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
 </style>
@@ -113,8 +116,8 @@
 
   <!-- STEP 2: Instructions -->
   <div class="card">
-    <h2><span class="step-num">2</span>Email instructions</h2>
-    <p class="hint">Tells the AI how every email should sound. The recipient name + their High Five comments are added automatically per row.</p>
+    <h2><span class="step-num">2</span>Email instructions <span id="syncStatus" class="sync"></span></h2>
+    <p class="hint">Tells the AI how every email should sound. The recipient name + their High Five comments are added automatically per row. Your edits below are saved automatically.</p>
     <div class="field">
       <label for="subject">Subject line <span class="pill">use {recipient} for the name</span></label>
       <input type="text" id="subject" value="🙌 A High Five for you, {recipient}!" />
@@ -204,13 +207,68 @@ const fileInput = $('fileInput'), filebox = $('filebox'), fileInfo = $('fileInfo
 const genBtn = $('generate'), dlBtn = $('download');
 let parsedRows = null, headers = null, colIdx = null, outputWorkbook = null;
 
-// ---------- init ----------
+// ---------- settings (subject / system prompt / signature) ----------
+// Source of truth is the server (/api/settings) so edits persist across devices.
+// localStorage is kept as an instant-load cache + offline fallback.
+let settingsStorage = 'local';     // becomes 'server' once the API responds
+let saveTimer = null;
+
+function setSync(msg, cls) {
+  const el = $('syncStatus');
+  if (el) { el.textContent = msg; el.className = 'sync ' + (cls || ''); }
+}
+
+// 1) Show cached/default values immediately so the form is never blank.
+subjEl.value = localStorage.getItem('hf_subject') || subjEl.value;
 sysEl.value = localStorage.getItem('hf_sysprompt') || DEFAULT_SYSTEM_PROMPT;
-if (localStorage.getItem('hf_subject')) subjEl.value = localStorage.getItem('hf_subject');
 sigEl.value = localStorage.getItem('hf_signature') || DEFAULT_SIGNATURE;
-subjEl.addEventListener('change', () => localStorage.setItem('hf_subject', subjEl.value));
-sysEl.addEventListener('change', () => localStorage.setItem('hf_sysprompt', sysEl.value));
-sigEl.addEventListener('change', () => localStorage.setItem('hf_signature', sigEl.value));
+
+// 2) Then load the authoritative copy from the server (cross-device).
+(async () => {
+  try {
+    const r = await fetch('/api/settings', { cache: 'no-store' });
+    if (r.ok) {
+      settingsStorage = 'server';
+      const s = await r.json();
+      if (typeof s.subject === 'string' && s.subject) subjEl.value = s.subject;
+      if (typeof s.systemPrompt === 'string' && s.systemPrompt) sysEl.value = s.systemPrompt;
+      if (typeof s.signature === 'string' && s.signature) sigEl.value = s.signature;
+      cacheLocal();
+      setSync('✓ Synced across devices', 'ok');
+    } else {
+      setSync('Saved on this device only (no shared storage configured)', '');
+    }
+  } catch (_) {
+    setSync('Saved on this device only', '');
+  }
+})();
+
+function cacheLocal() {
+  localStorage.setItem('hf_subject', subjEl.value);
+  localStorage.setItem('hf_sysprompt', sysEl.value);
+  localStorage.setItem('hf_signature', sigEl.value);
+}
+
+function saveSettings() {
+  cacheLocal();
+  if (settingsStorage !== 'server') return;       // local-only mode
+  clearTimeout(saveTimer);
+  setSync('Saving…', '');
+  saveTimer = setTimeout(async () => {
+    try {
+      const r = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subject: subjEl.value, systemPrompt: sysEl.value, signature: sigEl.value }),
+      });
+      setSync(r.ok ? '✓ Saved — synced across devices' : '✗ Save failed', r.ok ? 'ok' : 'err');
+    } catch (_) {
+      setSync('✗ Save failed (offline?)', 'err');
+    }
+  }, 700);
+}
+
+[subjEl, sysEl, sigEl].forEach(el => el.addEventListener('input', saveSettings));
 
 // ---------- file handling ----------
 filebox.addEventListener('click', () => fileInput.click());
@@ -305,9 +363,7 @@ function buildMailto(recipient, manager, submitted, subject, body, signature) {
 // ---------- generation pipeline ----------
 genBtn.addEventListener('click', async () => {
   if (!parsedRows) return setSummary('Load a spreadsheet first.', true);
-  localStorage.setItem('hf_sysprompt', sysEl.value);
-  localStorage.setItem('hf_subject', subjEl.value);
-  localStorage.setItem('hf_signature', sigEl.value);
+  cacheLocal();
 
   genBtn.disabled = true; dlBtn.disabled = true;
   $('progressWrap').classList.add('show');
