@@ -5,8 +5,8 @@ recognition spreadsheet, and the tool uses **Google Gemini** to write a warm rec
 email for each row, then gives you back the same spreadsheet with an extra **Email Link**
 column. Clicking a link opens **Outlook** with the To, CC, subject, and body pre-filled.
 
-- **To** = `Recipient` + `LandscapeDivisionLeadership@hunterindustries.com`
-- **CC** = `Recipient Manager` + `Submitted`
+- **To** = `Recipient`
+- **CC** = `Recipient Manager` + `Submitted` + `LandscapeDivisionLeadership@hunterindustries.com`
 - **Body** = AI-written from that row's `Comments`, following your system prompt, with your plain-text signature appended
 
 > The signature is plain text only — a `mailto:` body can't carry a rich/graphical

@@ -158,7 +158,7 @@
   <details class="card">
     <summary>How it works &amp; notes</summary>
     <div style="margin-top:10px;font-size:13px;color:var(--muted)">
-      <p><strong>To / CC:</strong> The link sets <em>To = Recipient + LandscapeDivisionLeadership@hunterindustries.com</em> and <em>CC = Recipient Manager + Submitted</em>. Names use display names, resolved against your company address book (GAL) when Outlook opens. If a name doesn't auto-resolve, Outlook underlines it so you can pick the right person.</p>
+      <p><strong>To / CC:</strong> The link sets <em>To = Recipient</em> and <em>CC = Recipient Manager + Submitted + LandscapeDivisionLeadership@hunterindustries.com</em>. Names use display names, resolved against your company address book (GAL) when Outlook opens. If a name doesn't auto-resolve, Outlook underlines it so you can pick the right person.</p>
       <p><strong>Signature:</strong> Whatever you type in the Signature box is appended (as plain text) to the end of every email. Rich/graphical signatures (logos, colors) can't go through a <code>mailto:</code> link — use plain text only.</p>
       <p><strong>Length limit:</strong> Excel hyperlinks and Windows <code>mailto:</code> are capped near ~2,000 characters. The AI is told to keep emails short so nothing is cut off. Rows that still exceed the limit are flagged <span class="pill warn">trimmed</span>.</p>
       <p><strong>Privacy &amp; key:</strong> The Gemini API key lives only on the server (Vercel env var) — it is never shown in the browser. Only the recipient name + comments + your prompt are sent to Google's Gemini API to write each message.</p>
@@ -182,8 +182,8 @@ Write a warm, sincere, and professional email body congratulating the recipient 
 const MAX_LINK_LEN = 2000;
 const CONCURRENCY = 4;
 
-// Always added to the To line, alongside the recipient.
-const FIXED_TO = 'LandscapeDivisionLeadership@hunterindustries.com';
+// Always added to the CC line, alongside the manager and submitter.
+const FIXED_CC = 'LandscapeDivisionLeadership@hunterindustries.com';
 
 // Default plain-text signature appended to every email body.
 // (mailto: bodies are plain text — the Hunter logo image cannot be embedded.)
@@ -338,11 +338,10 @@ $('testConn').addEventListener('click', async () => {
 
 // ---------- mailto building ----------
 function buildMailto(recipient, manager, submitted, subject, body, signature) {
-  // To = recipient (display name, resolved via GAL) + the fixed group address.
-  const toList = [String(recipient || '').trim(), FIXED_TO].filter(Boolean);
-  const to = toList.map(encodeURIComponent).join(',');
-  // CC = manager + submitter, de-duplicated.
-  const ccNames = [manager, submitted].map(x => String(x || '').trim()).filter(Boolean);
+  // To = recipient (display name, resolved via GAL).
+  const to = encodeURIComponent(String(recipient || '').trim());
+  // CC = manager + submitter + the fixed group address, de-duplicated.
+  const ccNames = [manager, submitted, FIXED_CC].map(x => String(x || '').trim()).filter(Boolean);
   const ccUnique = [...new Set(ccNames.map(n => n.toLowerCase()))].map(l => ccNames.find(n => n.toLowerCase() === l));
   const cc = ccUnique.map(encodeURIComponent).join(',');
   const subj = encodeURIComponent(subject.replace(/\{recipient\}/gi, recipient));
