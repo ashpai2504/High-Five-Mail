@@ -9,8 +9,19 @@
 const KEY = 'high-five-settings';
 
 function redisConfig() {
-  const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+  const env = process.env;
+  // Known names first (Vercel KV / Upstash native)...
+  let url = env.KV_REST_API_URL || env.UPSTASH_REDIS_REST_URL;
+  let token = env.KV_REST_API_TOKEN || env.UPSTASH_REDIS_REST_TOKEN;
+  // ...otherwise auto-detect whatever prefix Vercel used (e.g. STORAGE_REST_API_URL).
+  if (!url || !token) {
+    for (const k of Object.keys(env)) {
+      const v = env[k];
+      if (!v) continue;
+      if (!url && /REST_API_URL$/.test(k)) url = v;
+      if (!token && /REST_API_TOKEN$/.test(k) && !/READ_ONLY/.test(k)) token = v;
+    }
+  }
   return url && token ? { url, token } : null;
 }
 
