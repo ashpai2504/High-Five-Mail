@@ -5,9 +5,12 @@ recognition spreadsheet, and the tool uses **Google Gemini** to write a warm rec
 email for each row, then gives you back the same spreadsheet with an extra **Email Link**
 column. Clicking a link opens **Outlook** with the To, CC, subject, and body pre-filled.
 
-- **To** = `Recipient`
+- **To** = `Recipient` + `LandscapeDivisionLeadership@hunterindustries.com`
 - **CC** = `Recipient Manager` + `Submitted`
-- **Body** = AI-written from that row's `Comments`, following your system prompt
+- **Body** = AI-written from that row's `Comments`, following your system prompt, with your plain-text signature appended
+
+> The signature is plain text only — a `mailto:` body can't carry a rich/graphical
+> (logo, colors) signature. Set it in the **Signature** box in the UI.
 
 The Gemini API key lives **only on the server** (a Vercel serverless function) and is never
 exposed to the browser.

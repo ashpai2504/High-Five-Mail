@@ -123,6 +123,10 @@
       <label for="sysPrompt">System prompt</label>
       <textarea id="sysPrompt"></textarea>
     </div>
+    <div class="field">
+      <label for="signature">Signature <span class="pill">plain text only — no logos/colors</span></label>
+      <textarea id="signature" style="min-height:90px" placeholder="Best regards,&#10;&#10;Jane Smith&#10;Landscape Division | Hunter Industries&#10;jane.smith@hunterindustries.com"></textarea>
+    </div>
   </div>
 
   <!-- ACTIONS -->
@@ -151,7 +155,8 @@
   <details class="card">
     <summary>How it works &amp; notes</summary>
     <div style="margin-top:10px;font-size:13px;color:var(--muted)">
-      <p><strong>To / CC:</strong> The link sets <em>To = Recipient</em> and <em>CC = Recipient Manager + Submitted</em>, using their display names. When you click the link, Outlook opens and resolves those names against your company address book (GAL). If a name doesn't auto-resolve, Outlook underlines it so you can pick the right person.</p>
+      <p><strong>To / CC:</strong> The link sets <em>To = Recipient + LandscapeDivisionLeadership@hunterindustries.com</em> and <em>CC = Recipient Manager + Submitted</em>. Names use display names, resolved against your company address book (GAL) when Outlook opens. If a name doesn't auto-resolve, Outlook underlines it so you can pick the right person.</p>
+      <p><strong>Signature:</strong> Whatever you type in the Signature box is appended (as plain text) to the end of every email. Rich/graphical signatures (logos, colors) can't go through a <code>mailto:</code> link — use plain text only.</p>
       <p><strong>Length limit:</strong> Excel hyperlinks and Windows <code>mailto:</code> are capped near ~2,000 characters. The AI is told to keep emails short so nothing is cut off. Rows that still exceed the limit are flagged <span class="pill warn">trimmed</span>.</p>
       <p><strong>Privacy &amp; key:</strong> The Gemini API key lives only on the server (Vercel env var) — it is never shown in the browser. Only the recipient name + comments + your prompt are sent to Google's Gemini API to write each message.</p>
     </div>
@@ -174,8 +179,11 @@ Write a warm, sincere, and professional email body congratulating the recipient 
 const MAX_LINK_LEN = 2000;
 const CONCURRENCY = 4;
 
+// Always added to the To line, alongside the recipient.
+const FIXED_TO = 'LandscapeDivisionLeadership@hunterindustries.com';
+
 const $ = id => document.getElementById(id);
-const sysEl = $('sysPrompt'), subjEl = $('subject');
+const sysEl = $('sysPrompt'), subjEl = $('subject'), sigEl = $('signature');
 const fileInput = $('fileInput'), filebox = $('filebox'), fileInfo = $('fileInfo');
 const genBtn = $('generate'), dlBtn = $('download');
 let parsedRows = null, headers = null, colIdx = null, outputWorkbook = null;
@@ -183,8 +191,10 @@ let parsedRows = null, headers = null, colIdx = null, outputWorkbook = null;
 // ---------- init ----------
 sysEl.value = localStorage.getItem('hf_sysprompt') || DEFAULT_SYSTEM_PROMPT;
 if (localStorage.getItem('hf_subject')) subjEl.value = localStorage.getItem('hf_subject');
+if (localStorage.getItem('hf_signature')) sigEl.value = localStorage.getItem('hf_signature');
 subjEl.addEventListener('change', () => localStorage.setItem('hf_subject', subjEl.value));
 sysEl.addEventListener('change', () => localStorage.setItem('hf_sysprompt', sysEl.value));
+sigEl.addEventListener('change', () => localStorage.setItem('hf_signature', sigEl.value));
 
 // ---------- file handling ----------
 filebox.addEventListener('click', () => fileInput.click());
@@ -253,18 +263,24 @@ $('testConn').addEventListener('click', async () => {
 });
 
 // ---------- mailto building ----------
-function buildMailto(recipient, manager, submitted, subject, body) {
+function buildMailto(recipient, manager, submitted, subject, body, signature) {
+  // To = recipient (display name, resolved via GAL) + the fixed group address.
+  const toList = [String(recipient || '').trim(), FIXED_TO].filter(Boolean);
+  const to = toList.map(encodeURIComponent).join(',');
+  // CC = manager + submitter, de-duplicated.
   const ccNames = [manager, submitted].map(x => String(x || '').trim()).filter(Boolean);
   const ccUnique = [...new Set(ccNames.map(n => n.toLowerCase()))].map(l => ccNames.find(n => n.toLowerCase() === l));
   const cc = ccUnique.map(encodeURIComponent).join(',');
   const subj = encodeURIComponent(subject.replace(/\{recipient\}/gi, recipient));
-  const base = r => `mailto:${encodeURIComponent(recipient)}?${cc ? 'cc=' + cc + '&' : ''}subject=${subj}&body=${encodeURIComponent(r)}`;
-  let url = base(body), trimmed = false;
+  const sigBlock = signature && signature.trim() ? '\n\n' + signature.trim() : '';
+  // Signature is always appended; only the AI body is trimmed if the link gets too long.
+  const compose = b => `mailto:${to}?${cc ? 'cc=' + cc + '&' : ''}subject=${subj}&body=${encodeURIComponent(b + sigBlock)}`;
+  let url = compose(body), trimmed = false;
   if (url.length > MAX_LINK_LEN) {
     let b = body;
-    while (b.length > 40 && base(b).length > MAX_LINK_LEN) b = b.slice(0, -40);
+    while (b.length > 40 && compose(b).length > MAX_LINK_LEN) b = b.slice(0, -40);
     b = b.trim() + ' …';
-    url = base(b);
+    url = compose(b);
     trimmed = true;
   }
   return { url, trimmed };
@@ -275,6 +291,7 @@ genBtn.addEventListener('click', async () => {
   if (!parsedRows) return setSummary('Load a spreadsheet first.', true);
   localStorage.setItem('hf_sysprompt', sysEl.value);
   localStorage.setItem('hf_subject', subjEl.value);
+  localStorage.setItem('hf_signature', sigEl.value);
 
   genBtn.disabled = true; dlBtn.disabled = true;
   $('progressWrap').classList.add('show');
@@ -295,7 +312,7 @@ genBtn.addEventListener('click', async () => {
       const comments = String(row[colIdx.comments] || '').trim();
       try {
         let body = (!recipient || !comments) ? '' : await generateBody(recipient.split(' ')[0], comments);
-        const { url, trimmed } = buildMailto(recipient, manager, submitted, subjEl.value, body || '(no comments provided)');
+        const { url, trimmed } = buildMailto(recipient, manager, submitted, subjEl.value, body || '(no comments provided)', sigEl.value);
         if (trimmed) trimmedCount++;
         results[i] = { body, url, trimmed, error: null };
       } catch (err) {
